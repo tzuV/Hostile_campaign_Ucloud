@@ -16,14 +16,26 @@ incumbent-party vote share on the resulting scores. No API key needed.
 - `entrypoint.sh` — starts Ollama, downloads the model, runs `pipeline.R`
 - `Dockerfile` — R + ellmer + Ollama
 
-## Quick start (one command)
+## Step-by-step (from a fresh machine)
 
-```sh
-./setup.sh
-```
+1. Clone the repo and enter it:
+   ```sh
+   git clone https://github.com/tzuV/Hostile_campaign_Ucloud.git
+   cd Hostile_campaign_Ucloud
+   ```
+2. Make sure Docker is installed (`docker --version`). On Ucloud VMs it usually is.
+3. Run the one-command setup:
+   ```sh
+   ./setup.sh
+   ```
+   This builds the image, downloads the model on first run (~4.7 GB, cached in
+   `~/.ollama` afterwards), and runs the full analysis. Uses the GPU
+   automatically if one is available.
+4. Find the results in `output/` (`ratings.csv`, `election_scores.csv`); the
+   regression table is printed to the console.
 
-This builds the image, downloads the model (first run only, ~4.7 GB), and runs
-the full analysis. Uses the GPU automatically if one is available.
+If `setup.sh` is missing, you cloned before PR #2 was merged — merge it first, or
+run `git checkout ellmer-ollama-pipeline`.
 
 ## Build and run by hand
 
