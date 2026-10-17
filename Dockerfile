@@ -12,7 +12,7 @@ RUN curl -fsSL https://ollama.com/install.sh | sh
 RUN Rscript -e 'install.packages("ellmer", repos = "https://cloud.r-project.org")'
 
 WORKDIR /app
-COPY pipeline.R entrypoint.sh ./
+COPY pipeline.R prompt_llm.R entrypoint.sh ./
 COPY data ./data
 RUN chmod +x entrypoint.sh
 
