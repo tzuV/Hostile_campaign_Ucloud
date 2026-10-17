@@ -9,7 +9,7 @@ incumbent-party vote share on the resulting scores. No API key needed.
 
 ## Contents
 
-- `setup.sh` — one-command setup: builds the image and runs everything
+- `setup.sh` — one-command setup: uses Docker if available, otherwise installs Ollama + ellmer directly and runs the pipeline
 - `pipeline.R` — the whole analysis: rate statements → candidate diffs → regression
 - `prompt_llm.R` — minimal script that sends a single prompt to the local model
 - `data/` — toy example: 6 races × 2 candidates × 2 statements, plus vote shares
@@ -23,21 +23,37 @@ incumbent-party vote share on the resulting scores. No API key needed.
    git clone https://github.com/tzuV/Hostile_campaign_Ucloud.git
    cd Hostile_campaign_Ucloud
    ```
-2. Make sure Docker is installed (`docker --version`). On Ucloud VMs it usually is.
-3. Run the one-command setup:
+2. Run the one-command setup:
    ```sh
    ./setup.sh
    ```
-   This builds the image, downloads the model on first run (~4.7 GB, cached in
-   `~/.ollama` afterwards), and runs the full analysis. Uses the GPU
-   automatically if one is available.
-4. Find the results in `output/` (`ratings.csv`, `election_scores.csv`); the
+   - **Machine has Docker** (e.g. your laptop): builds the image and runs the
+     container.
+   - **No Docker, but R is installed** (e.g. a Ucloud VM/app): installs Ollama and
+     the `ellmer` package directly, downloads the model on first run (~4.7 GB,
+     cached in `~/.ollama` afterwards), and runs the full analysis. No
+     Docker-in-Docker needed. Uses the GPU automatically if one is available.
+3. Find the results in `output/` (`ratings.csv`, `election_scores.csv`); the
    regression table is printed to the console.
+
+The Dockerfile only exists for machines that have Docker but not R — if you
+already have R, the raw path is simpler and skips Docker entirely.
 
 If `setup.sh` is missing, you cloned before PR #2 was merged — merge it first, or
 run `git checkout ellmer-ollama-pipeline`.
 
-## Build and run by hand
+## Run without Docker, by hand
+
+```sh
+curl -fsSL https://ollama.com/install.sh | sudo sh   # or: download ollama-linux-amd64.tgz to ~/.local
+Rscript -e 'install.packages("ellmer")'
+sh entrypoint.sh   # starts Ollama, downloads the model, runs pipeline.R
+```
+
+If installing `ellmer` fails on missing system libraries, install
+`libcurl4-openssl-dev` and `libssl-dev` first (needs root).
+
+## Build and run by hand (Docker)
 
 ```sh
 docker build -t hostile-rhetoric .
