@@ -9,12 +9,35 @@ incumbent-party vote share on the resulting scores. No API key needed.
 
 ## Contents
 
+- `setup.sh` — one-command setup: builds the image and runs everything
 - `pipeline.R` — the whole analysis: rate statements → candidate diffs → regression
+- `prompt_llm.R` — minimal script that sends a single prompt to the local model
 - `data/` — toy example: 6 races × 2 candidates × 2 statements, plus vote shares
 - `entrypoint.sh` — starts Ollama, downloads the model, runs `pipeline.R`
 - `Dockerfile` — R + ellmer + Ollama
 
-## Build
+## Step-by-step (from a fresh machine)
+
+1. Clone the repo and enter it:
+   ```sh
+   git clone https://github.com/tzuV/Hostile_campaign_Ucloud.git
+   cd Hostile_campaign_Ucloud
+   ```
+2. Make sure Docker is installed (`docker --version`). On Ucloud VMs it usually is.
+3. Run the one-command setup:
+   ```sh
+   ./setup.sh
+   ```
+   This builds the image, downloads the model on first run (~4.7 GB, cached in
+   `~/.ollama` afterwards), and runs the full analysis. Uses the GPU
+   automatically if one is available.
+4. Find the results in `output/` (`ratings.csv`, `election_scores.csv`); the
+   regression table is printed to the console.
+
+If `setup.sh` is missing, you cloned before PR #2 was merged — merge it first, or
+run `git checkout ellmer-ollama-pipeline`.
+
+## Build and run by hand
 
 ```sh
 docker build -t hostile-rhetoric .
@@ -45,6 +68,18 @@ docker run --rm -e MODEL=llama3.1:8b -v "$PWD/output:/app/output" hostile-rhetor
 
 Any Ollama model in the 7-11B range works, e.g. `qwen2.5:7b` (default),
 `llama3.1:8b`, `gemma2:9b`.
+
+## Just prompt the model
+
+`prompt_llm.R` is a minimal script that sends one prompt to the local model and
+prints the reply (it starts the Ollama server itself if needed):
+
+```sh
+docker run -it --rm --gpus all -v "$HOME/.ollama:/root/.ollama" \
+  --entrypoint bash hostile-rhetoric
+# inside the container:
+Rscript prompt_llm.R "Rate the incivility of this statement on a scale of 1-8: 'My opponent is a liar.'"
+```
 
 ## Output
 
