@@ -1,107 +1,44 @@
 # Hostile_campaign_Ucloud
 
-Minimal pipeline that recreates the text-analysis method of Banks & Stone (2026),
-"Hostile Campaign Rhetoric and Electoral Outcomes" (Social Science Quarterly), in R
-with [ellmer](https://ellmer.tidyverse.org/). A local 7-11B model (downloaded at
-runtime) rates campaign statements for incivility and character attacks using the
-paper's prompts (Appendix A), aggregates to candidate level, and regresses
-incumbent-party vote share on the resulting scores. No API key needed.
+R pipeline that recreates the text-analysis method of Banks & Stone (2026),
+"Hostile Campaign Rhetoric and Electoral Outcomes", using a local LLM via
+[Ollama](https://ollama.com) and [ellmer](https://ellmer.tidyverse.org/). A
+local 7-11B model rates campaign statements for incivility and character
+attacks, aggregates to candidate level, and regresses vote share on the
+scores. No API key, no Docker.
 
 ## Contents
 
-- `setup.sh` — one-command setup: uses Docker if available, otherwise installs Ollama + ellmer directly and runs the pipeline
+- `setup.sh` — installs Ollama + the `ellmer` package, pulls the model
 - `pipeline.R` — the whole analysis: rate statements → candidate diffs → regression
-- `prompt_llm.R` — minimal script that sends a single prompt to the local model
+- `prompt_llm.R` — sends a single prompt to the local model
 - `data/` — toy example: 6 races × 2 candidates × 2 statements, plus vote shares
-- `entrypoint.sh` — starts Ollama, downloads the model, runs `pipeline.R`
-- `Dockerfile` — R + ellmer + Ollama
 
-## Step-by-step (from a fresh machine)
-
-1. Clone the repo and enter it:
-   ```sh
-   git clone https://github.com/tzuV/Hostile_campaign_Ucloud.git
-   cd Hostile_campaign_Ucloud
-   ```
-2. Run the one-command setup:
-   ```sh
-   ./setup.sh
-   ```
-   - **Machine has Docker** (e.g. your laptop): builds the image and runs the
-     container.
-   - **No Docker, but R is installed** (e.g. a Ucloud VM/app): installs Ollama and
-     the `ellmer` package directly, downloads the model on first run (~4.7 GB,
-     cached in `~/.ollama` afterwards), and runs the full analysis. No
-     Docker-in-Docker needed. Uses the GPU automatically if one is available.
-3. Find the results in `output/` (`ratings.csv`, `election_scores.csv`); the
-   regression table is printed to the console.
-
-The Dockerfile only exists for machines that have Docker but not R — if you
-already have R, the raw path is simpler and skips Docker entirely.
-
-If `setup.sh` is missing, you cloned before PR #2 was merged — merge it first, or
-run `git checkout ellmer-ollama-pipeline`.
-
-## Run without Docker, by hand
+## Run
 
 ```sh
-curl -fsSL https://ollama.com/install.sh | sudo sh   # or: download ollama-linux-amd64.tgz to ~/.local
-Rscript -e 'install.packages("ellmer")'
-sh entrypoint.sh   # starts Ollama, downloads the model, runs pipeline.R
+./setup.sh          # first run downloads the model, ~4.7 GB
+ollama serve &      # start the server (skip if already running)
+Rscript pipeline.R
 ```
 
-If installing `ellmer` fails on missing system libraries, install
-`libcurl4-openssl-dev` and `libssl-dev` first (needs root).
+Results go to `output/ratings.csv` and `output/election_scores.csv`; the
+regression table is printed to the console.
 
-## Build and run by hand (Docker)
-
-```sh
-docker build -t hostile-rhetoric .
-```
-
-## Run (first run downloads the model, ~4.7 GB)
+Prompt the model directly:
 
 ```sh
-docker run --rm -v "$PWD/output:/app/output" hostile-rhetoric
-```
-
-## Run on a GPU node (e.g. Ucloud)
-
-```sh
-docker run --rm --gpus all \
-  -v "$PWD/output:/app/output" \
-  -v "$HOME/.ollama:/root/.ollama" \
-  hostile-rhetoric
-```
-
-Mounting `~/.ollama` caches the downloaded model between runs.
-
-## Choose another 7-11B model
-
-```sh
-docker run --rm -e MODEL=llama3.1:8b -v "$PWD/output:/app/output" hostile-rhetoric
-```
-
-Any Ollama model in the 7-11B range works, e.g. `qwen2.5:7b` (default),
-`llama3.1:8b`, `gemma2:9b`.
-
-## Just prompt the model
-
-`prompt_llm.R` is a minimal script that sends one prompt to the local model and
-prints the reply (it starts the Ollama server itself if needed):
-
-```sh
-docker run -it --rm --gpus all -v "$HOME/.ollama:/root/.ollama" \
-  --entrypoint bash hostile-rhetoric
-# inside the container:
 Rscript prompt_llm.R "Rate the incivility of this statement on a scale of 1-8: 'My opponent is a liar.'"
 ```
 
-## Output
+## Choose another model
 
-- `output/ratings.csv` — per-statement civility and character-attack scores (1-8)
-- `output/election_scores.csv` — candidate scores, diffs, and the regression data
-- console — the OLS regression of vote share on the rhetoric diffs
+Any 7-11B Ollama model works, e.g. `llama3.1:8b`, `gemma2:9b`:
 
-The election data is toy data (N = 6), so the regression is illustrative only.
+```sh
+MODEL=llama3.1:8b ollama pull llama3.1:8b
+MODEL=llama3.1:8b Rscript pipeline.R
+```
+
+The election data is toy data (N = 6); the regression is illustrative only.
 Replace `data/` with real campaign texts and vote shares to replicate the paper.
