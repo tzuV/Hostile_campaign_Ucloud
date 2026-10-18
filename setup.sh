@@ -17,5 +17,8 @@ fi
 # The only R package the pipeline needs
 Rscript -e 'if (!requireNamespace("ellmer", quietly = TRUE)) install.packages("ellmer", repos = "https://cloud.r-project.org")'
 
+# Start the server if it is not already up (no systemd in containers)
+ollama list >/dev/null 2>&1 || { ollama serve >/dev/null 2>&1 & sleep 3; }
+
 # Download the model (~4.7 GB, cached in ~/.ollama)
 ollama pull "${MODEL:-qwen2.5:7b}"
